@@ -145,10 +145,15 @@ resource "aws_cloudwatch_log_resource_policy" "opensearch_logs" {
 }
 
 # =============================================================================
-# ACCESS POLICY
+# ACCESS POLICY (only for non-VPC domains, VPC uses security groups)
 # =============================================================================
 
+# For VPC-based domains, access is controlled via security groups
+# IP-based policies are not allowed for VPC endpoints
+# This policy is only created for public (non-VPC) domains
 resource "aws_opensearch_domain_policy" "main" {
+  count = length(var.subnet_ids) == 0 ? 1 : 0  # Only create for non-VPC domains
+
   domain_name = aws_opensearch_domain.main.domain_name
 
   access_policies = jsonencode({
