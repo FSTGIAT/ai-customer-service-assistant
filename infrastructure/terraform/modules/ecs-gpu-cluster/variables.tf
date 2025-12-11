@@ -47,6 +47,12 @@ variable "ecs_instance_role_arn" {
   type        = string
 }
 
+variable "ecs_instance_profile_arn" {
+  description = "ARN of the ECS instance profile (if using existing, otherwise created from role)"
+  type        = string
+  default     = ""
+}
+
 variable "ecs_task_execution_role_arn" {
   description = "ARN of the ECS task execution role"
   type        = string

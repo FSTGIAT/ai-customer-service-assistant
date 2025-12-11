@@ -1,5 +1,5 @@
 # Main Terraform configuration for RAG Evaluation Infrastructure
-# This builds the complete AWS infrastructure from scratch
+# Supports using existing VPC and IAM roles or creating new ones
 
 locals {
   name_prefix = "${var.project_name}-${var.environment}"
@@ -9,14 +9,24 @@ locals {
     Environment = var.environment
     ManagedBy   = "terraform"
   }
+
+  # Use existing or created resources
+  vpc_id             = var.use_existing_vpc ? var.existing_vpc_id : module.networking[0].vpc_id
+  private_subnet_ids = var.use_existing_vpc ? var.existing_private_subnet_ids : module.networking[0].private_subnet_ids
+  public_subnet_ids  = var.use_existing_vpc ? var.existing_public_subnet_ids : module.networking[0].public_subnet_ids
+
+  ecs_instance_role_arn       = var.use_existing_iam_roles ? var.existing_ecs_instance_role_arn : module.iam_policies[0].ecs_instance_role_arn
+  ecs_task_execution_role_arn = var.use_existing_iam_roles ? var.existing_ecs_task_execution_role_arn : module.iam_policies[0].ecs_task_execution_role_arn
+  ecs_task_role_arn           = var.use_existing_iam_roles ? (var.existing_ecs_task_role_arn != "" ? var.existing_ecs_task_role_arn : var.existing_ecs_task_execution_role_arn) : module.iam_policies[0].ecs_task_role_arn
 }
 
 # =============================================================================
-# NETWORKING
+# NETWORKING (conditionally created)
 # =============================================================================
 
 module "networking" {
   source = "./modules/networking"
+  count  = var.use_existing_vpc ? 0 : 1
 
   name_prefix        = local.name_prefix
   vpc_cidr           = var.vpc_cidr
@@ -25,12 +35,99 @@ module "networking" {
   tags = local.common_tags
 }
 
+# Security groups for existing VPC
+resource "aws_security_group" "ecs" {
+  count = var.use_existing_vpc ? 1 : 0
+
+  name        = "${local.name_prefix}-ecs-sg"
+  description = "Security group for ECS tasks"
+  vpc_id      = local.vpc_id
+
+  ingress {
+    description = "Allow internal traffic"
+    from_port   = 0
+    to_port     = 65535
+    protocol    = "tcp"
+    self        = true
+  }
+
+  ingress {
+    description = "Allow HTTP"
+    from_port   = 80
+    to_port     = 80
+    protocol    = "tcp"
+    cidr_blocks = ["10.0.0.0/16"]
+  }
+
+  ingress {
+    description = "Allow HTTPS"
+    from_port   = 443
+    to_port     = 443
+    protocol    = "tcp"
+    cidr_blocks = ["10.0.0.0/16"]
+  }
+
+  ingress {
+    description = "Allow Flask app port"
+    from_port   = 5000
+    to_port     = 5000
+    protocol    = "tcp"
+    cidr_blocks = ["10.0.0.0/16"]
+  }
+
+  egress {
+    description = "Allow all outbound"
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  tags = merge(local.common_tags, {
+    Name = "${local.name_prefix}-ecs-sg"
+  })
+}
+
+resource "aws_security_group" "opensearch" {
+  count = var.use_existing_vpc ? 1 : 0
+
+  name        = "${local.name_prefix}-opensearch-sg"
+  description = "Security group for OpenSearch domain"
+  vpc_id      = local.vpc_id
+
+  ingress {
+    description = "Allow HTTPS from VPC"
+    from_port   = 443
+    to_port     = 443
+    protocol    = "tcp"
+    cidr_blocks = ["10.0.0.0/16"]
+  }
+
+  egress {
+    description = "Allow all outbound"
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  tags = merge(local.common_tags, {
+    Name = "${local.name_prefix}-opensearch-sg"
+  })
+}
+
+locals {
+  ecs_security_group_id        = var.use_existing_vpc ? aws_security_group.ecs[0].id : module.networking[0].ecs_security_group_id
+  opensearch_security_group_id = var.use_existing_vpc ? aws_security_group.opensearch[0].id : module.networking[0].opensearch_security_group_id
+}
+
 # =============================================================================
-# IAM POLICIES
+# IAM POLICIES (conditionally created)
 # =============================================================================
 
 module "iam_policies" {
   source = "./modules/iam-policies"
+  count  = var.use_existing_iam_roles ? 0 : 1
 
   name_prefix = local.name_prefix
   aws_region  = var.aws_region
@@ -52,9 +149,9 @@ module "opensearch" {
   instance_count        = var.opensearch_instance_count
   ebs_volume_size       = var.opensearch_ebs_volume_size
 
-  vpc_id                = module.networking.vpc_id
-  subnet_ids            = module.networking.private_subnet_ids
-  security_group_ids    = [module.networking.opensearch_security_group_id]
+  vpc_id             = local.vpc_id
+  subnet_ids         = local.private_subnet_ids
+  security_group_ids = [local.opensearch_security_group_id]
 
   tags = local.common_tags
 }
@@ -81,18 +178,19 @@ module "ecs_gpu_cluster" {
   source = "./modules/ecs-gpu-cluster"
 
   name_prefix        = local.name_prefix
-  vpc_id             = module.networking.vpc_id
-  subnet_ids         = module.networking.private_subnet_ids
-  security_group_ids = [module.networking.ecs_security_group_id]
+  vpc_id             = local.vpc_id
+  subnet_ids         = local.private_subnet_ids
+  security_group_ids = [local.ecs_security_group_id]
 
-  instance_type      = var.ecs_gpu_instance_type
-  min_size           = var.ecs_gpu_min_size
-  max_size           = var.ecs_gpu_max_size
-  desired_size       = var.ecs_gpu_desired_size
+  instance_type = var.ecs_gpu_instance_type
+  min_size      = var.ecs_gpu_min_size
+  max_size      = var.ecs_gpu_max_size
+  desired_size  = var.ecs_gpu_desired_size
 
-  ecs_instance_role_arn     = module.iam_policies.ecs_instance_role_arn
-  ecs_task_execution_role_arn = module.iam_policies.ecs_task_execution_role_arn
-  ecs_task_role_arn         = module.iam_policies.ecs_task_role_arn
+  ecs_instance_role_arn       = local.ecs_instance_role_arn
+  ecs_instance_profile_arn    = var.use_existing_iam_roles ? var.existing_ecs_instance_profile_arn : ""
+  ecs_task_execution_role_arn = local.ecs_task_execution_role_arn
+  ecs_task_role_arn           = local.ecs_task_role_arn
 
   tags = local.common_tags
 }
@@ -107,16 +205,16 @@ module "evaluation_service" {
   name_prefix = local.name_prefix
 
   ecs_cluster_id              = module.ecs_gpu_cluster.cluster_id
-  ecs_task_execution_role_arn = module.iam_policies.ecs_task_execution_role_arn
-  ecs_task_role_arn           = module.iam_policies.ecs_task_role_arn
+  ecs_task_execution_role_arn = local.ecs_task_execution_role_arn
+  ecs_task_role_arn           = local.ecs_task_role_arn
 
-  subnet_ids         = module.networking.private_subnet_ids
-  security_group_ids = [module.networking.ecs_security_group_id]
+  subnet_ids         = local.private_subnet_ids
+  security_group_ids = [local.ecs_security_group_id]
 
-  opensearch_endpoint     = module.opensearch.domain_endpoint
-  evaluation_queue_url    = module.sqs_queues.evaluation_queue_url
-  keypoint_queue_url      = module.sqs_queues.keypoint_queue_url
-  feedback_queue_url      = module.sqs_queues.feedback_queue_url
+  opensearch_endpoint  = module.opensearch.domain_endpoint
+  evaluation_queue_url = module.sqs_queues.evaluation_queue_url
+  keypoint_queue_url   = module.sqs_queues.keypoint_queue_url
+  feedback_queue_url   = module.sqs_queues.feedback_queue_url
 
   aws_region = var.aws_region
 

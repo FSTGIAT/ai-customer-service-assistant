@@ -89,13 +89,18 @@ data "aws_ami" "ecs_gpu_optimized" {
   }
 }
 
+locals {
+  # Use provided instance profile ARN or derive from role ARN
+  instance_profile_arn = var.ecs_instance_profile_arn != "" ? var.ecs_instance_profile_arn : var.ecs_instance_role_arn
+}
+
 resource "aws_launch_template" "ecs_gpu" {
   name          = "${var.name_prefix}-ecs-gpu-launch-template"
   image_id      = data.aws_ami.ecs_gpu_optimized.id
   instance_type = var.instance_type
 
   iam_instance_profile {
-    arn = var.ecs_instance_role_arn
+    arn = local.instance_profile_arn
   }
 
   network_interfaces {

@@ -2,7 +2,7 @@
 
 output "vpc_id" {
   description = "ID of the VPC"
-  value       = module.networking.vpc_id
+  value       = local.vpc_id
 }
 
 output "opensearch_endpoint" {

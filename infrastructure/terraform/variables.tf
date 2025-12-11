@@ -102,3 +102,58 @@ variable "sqs_visibility_timeout_seconds" {
   type        = number
   default     = 300  # 5 minutes
 }
+
+# Use Existing Resources (to avoid permission/limit issues)
+variable "use_existing_vpc" {
+  description = "Whether to use an existing VPC instead of creating a new one"
+  type        = bool
+  default     = false
+}
+
+variable "existing_vpc_id" {
+  description = "ID of existing VPC to use (required if use_existing_vpc is true)"
+  type        = string
+  default     = ""
+}
+
+variable "existing_private_subnet_ids" {
+  description = "List of existing private subnet IDs"
+  type        = list(string)
+  default     = []
+}
+
+variable "existing_public_subnet_ids" {
+  description = "List of existing public subnet IDs"
+  type        = list(string)
+  default     = []
+}
+
+variable "use_existing_iam_roles" {
+  description = "Whether to use existing IAM roles instead of creating new ones"
+  type        = bool
+  default     = false
+}
+
+variable "existing_ecs_instance_role_arn" {
+  description = "ARN of existing ECS instance role"
+  type        = string
+  default     = ""
+}
+
+variable "existing_ecs_task_execution_role_arn" {
+  description = "ARN of existing ECS task execution role"
+  type        = string
+  default     = ""
+}
+
+variable "existing_ecs_task_role_arn" {
+  description = "ARN of existing ECS task role (optional, can be same as execution role)"
+  type        = string
+  default     = ""
+}
+
+variable "existing_ecs_instance_profile_arn" {
+  description = "ARN of existing ECS instance profile"
+  type        = string
+  default     = ""
+}
