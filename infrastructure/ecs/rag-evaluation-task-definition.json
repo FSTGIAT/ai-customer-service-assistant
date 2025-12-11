@@ -1,0 +1,58 @@
+{
+  "family": "rag-evaluation-service",
+  "taskRoleArn": "arn:aws:iam::811287567672:role/ecsTaskExecutionRole",
+  "executionRoleArn": "arn:aws:iam::811287567672:role/ecsTaskExecutionRole",
+  "networkMode": "awsvpc",
+  "requiresCompatibilities": ["FARGATE"],
+  "cpu": "512",
+  "memory": "1024",
+  "runtimePlatform": {
+    "cpuArchitecture": "X86_64",
+    "operatingSystemFamily": "LINUX"
+  },
+  "containerDefinitions": [
+    {
+      "name": "rag-evaluation",
+      "image": "python:3.11-slim",
+      "cpu": 0,
+      "essential": true,
+      "portMappings": [
+        {
+          "containerPort": 8080,
+          "hostPort": 8080,
+          "protocol": "tcp",
+          "name": "evaluation-api"
+        }
+      ],
+      "environment": [
+        {"name": "OPENSEARCH_ENDPOINT", "value": "vpc-ca-playground-search-yhb2pp4cf6cdr36vs6ir6st3ti.eu-west-1.es.amazonaws.com"},
+        {"name": "OPENSEARCH_USER", "value": "admin"},
+        {"name": "SQS_EVALUATION_QUEUE", "value": "https://sqs.eu-west-1.amazonaws.com/811287567672/call-analytics-playground-evaluation-pipe-queue"},
+        {"name": "SQS_FEEDBACK_QUEUE", "value": "https://sqs.eu-west-1.amazonaws.com/811287567672/call-analytics-playground-feedback-pipe-queue"},
+        {"name": "AWS_REGION", "value": "eu-west-1"}
+      ],
+      "secrets": [
+        {
+          "name": "OPENSEARCH_PASSWORD",
+          "valueFrom": "arn:aws:secretsmanager:eu-west-1:811287567672:secret:playground/rag-evaluation/opensearch-lZW1m8:password::"
+        }
+      ],
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-group": "/ecs/rag-evaluation-service",
+          "awslogs-create-group": "true",
+          "awslogs-region": "eu-west-1",
+          "awslogs-stream-prefix": "ecs"
+        }
+      },
+      "healthCheck": {
+        "command": ["CMD-SHELL", "curl -f http://localhost:8080/health || exit 1"],
+        "interval": 30,
+        "timeout": 5,
+        "retries": 3,
+        "startPeriod": 60
+      }
+    }
+  ]
+}
