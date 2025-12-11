@@ -3,14 +3,14 @@ output "opensearch_endpoint" {
   value       = module.rag_evaluation.opensearch_endpoint
 }
 
-output "ecs_cluster_name" {
-  description = "ECS cluster name"
-  value       = module.rag_evaluation.ecs_cluster_name
+output "evaluation_lambda_function_name" {
+  description = "Evaluation Lambda function name"
+  value       = module.rag_evaluation.evaluation_lambda_function_name
 }
 
-output "evaluation_service_ecr_url" {
-  description = "ECR repository URL for evaluation service"
-  value       = module.rag_evaluation.evaluation_service_ecr_url
+output "evaluation_lambda_function_arn" {
+  description = "Evaluation Lambda function ARN"
+  value       = module.rag_evaluation.evaluation_lambda_function_arn
 }
 
 output "sqs_queue_urls" {
@@ -21,4 +21,9 @@ output "sqs_queue_urls" {
 output "vpc_id" {
   description = "VPC ID"
   value       = module.rag_evaluation.vpc_id
+}
+
+output "cloudwatch_dashboard_url" {
+  description = "CloudWatch dashboard URL"
+  value       = module.rag_evaluation.cloudwatch_dashboard_url
 }

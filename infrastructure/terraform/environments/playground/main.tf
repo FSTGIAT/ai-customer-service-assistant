@@ -64,10 +64,19 @@ module "rag_evaluation" {
   opensearch_instance_type   = "r5.large.search"
   opensearch_instance_count  = 2
   opensearch_ebs_volume_size = 100
+  opensearch_master_user     = var.opensearch_master_user
+  opensearch_master_password = var.opensearch_master_password
 
   # =========================================================================
-  # ECS GPU Configuration
+  # Lambda-Based Evaluation (No ECS GPU needed - avoids IAM PassRole issues)
   # =========================================================================
+  enable_ecs_gpu_cluster = false  # Use Lambda instead of ECS for evaluation
+
+  # Use existing Lambda role to avoid IAM CreateRole permission requirement
+  use_existing_lambda_role = true
+  existing_lambda_role_arn = "arn:aws:iam::811287567672:role/amplify-login-lambda-0a515816"
+
+  # ECS GPU Configuration (only used if enable_ecs_gpu_cluster = true)
   ecs_gpu_instance_type = "g4dn.xlarge"
   ecs_gpu_min_size      = 1
   ecs_gpu_max_size      = 2

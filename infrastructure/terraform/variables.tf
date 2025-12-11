@@ -157,3 +157,38 @@ variable "existing_ecs_instance_profile_arn" {
   type        = string
   default     = ""
 }
+
+# Lambda/ECS Selection
+variable "enable_ecs_gpu_cluster" {
+  description = "Whether to create ECS GPU cluster (disable to use Lambda only)"
+  type        = bool
+  default     = false  # Default to Lambda-based evaluation
+}
+
+# OpenSearch Authentication
+variable "opensearch_master_user" {
+  description = "OpenSearch master username"
+  type        = string
+  default     = "admin"
+  sensitive   = true
+}
+
+variable "opensearch_master_password" {
+  description = "OpenSearch master password"
+  type        = string
+  default     = ""
+  sensitive   = true
+}
+
+# Use existing Lambda execution role (to avoid IAM CreateRole permission requirement)
+variable "use_existing_lambda_role" {
+  description = "Whether to use an existing Lambda execution role"
+  type        = bool
+  default     = false
+}
+
+variable "existing_lambda_role_arn" {
+  description = "ARN of existing Lambda execution role (required if use_existing_lambda_role is true)"
+  type        = string
+  default     = ""
+}

@@ -15,19 +15,26 @@ output "opensearch_dashboard_endpoint" {
   value       = module.opensearch.kibana_endpoint
 }
 
+# ECS outputs (only if ECS GPU cluster is enabled)
 output "ecs_cluster_name" {
   description = "ECS cluster name"
-  value       = module.ecs_gpu_cluster.cluster_name
+  value       = var.enable_ecs_gpu_cluster ? module.ecs_gpu_cluster[0].cluster_name : null
 }
 
 output "ecs_cluster_arn" {
   description = "ECS cluster ARN"
-  value       = module.ecs_gpu_cluster.cluster_arn
+  value       = var.enable_ecs_gpu_cluster ? module.ecs_gpu_cluster[0].cluster_arn : null
 }
 
-output "evaluation_service_ecr_url" {
-  description = "ECR repository URL for evaluation service"
-  value       = module.evaluation_service.ecr_repository_url
+# Lambda outputs
+output "evaluation_lambda_function_name" {
+  description = "Name of the evaluation Lambda function"
+  value       = module.evaluation_lambda.lambda_function_name
+}
+
+output "evaluation_lambda_function_arn" {
+  description = "ARN of the evaluation Lambda function"
+  value       = module.evaluation_lambda.lambda_function_arn
 }
 
 output "sqs_queue_urls" {

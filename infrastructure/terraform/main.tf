@@ -171,11 +171,12 @@ module "sqs_queues" {
 }
 
 # =============================================================================
-# ECS GPU CLUSTER
+# ECS GPU CLUSTER (Optional - for future GPU workloads)
 # =============================================================================
 
 module "ecs_gpu_cluster" {
   source = "./modules/ecs-gpu-cluster"
+  count  = var.enable_ecs_gpu_cluster ? 1 : 0
 
   name_prefix        = local.name_prefix
   vpc_id             = local.vpc_id
@@ -196,27 +197,36 @@ module "ecs_gpu_cluster" {
 }
 
 # =============================================================================
-# EVALUATION SERVICE
+# LAMBDA-BASED EVALUATION SERVICE (Serverless - No IAM PassRole needed)
 # =============================================================================
 
-module "evaluation_service" {
-  source = "./modules/evaluation-service"
+module "evaluation_lambda" {
+  source = "./modules/evaluation-lambda"
 
   name_prefix = local.name_prefix
-
-  ecs_cluster_id              = module.ecs_gpu_cluster.cluster_id
-  ecs_task_execution_role_arn = local.ecs_task_execution_role_arn
-  ecs_task_role_arn           = local.ecs_task_role_arn
+  aws_region  = var.aws_region
 
   subnet_ids         = local.private_subnet_ids
   security_group_ids = [local.ecs_security_group_id]
 
   opensearch_endpoint  = module.opensearch.domain_endpoint
-  evaluation_queue_url = module.sqs_queues.evaluation_queue_url
-  keypoint_queue_url   = module.sqs_queues.keypoint_queue_url
+  opensearch_arn       = module.opensearch.domain_arn
+  opensearch_user      = var.opensearch_master_user
+  opensearch_password  = var.opensearch_master_password
+
+  evaluation_queue_arn = module.sqs_queues.evaluation_queue_arn
+  feedback_queue_arn   = module.sqs_queues.feedback_queue_arn
   feedback_queue_url   = module.sqs_queues.feedback_queue_url
 
-  aws_region = var.aws_region
+  sqs_queue_arns = [
+    module.sqs_queues.evaluation_queue_arn,
+    module.sqs_queues.feedback_queue_arn,
+    module.sqs_queues.keypoint_queue_arn
+  ]
+
+  # Use existing Lambda role to avoid IAM CreateRole permission requirement
+  use_existing_lambda_role = var.use_existing_lambda_role
+  existing_lambda_role_arn = var.existing_lambda_role_arn
 
   tags = local.common_tags
 }
