@@ -136,10 +136,8 @@ resource "aws_ecs_service" "evaluation_service" {
     security_groups = var.security_group_ids
   }
 
-  deployment_configuration {
-    maximum_percent         = 200
-    minimum_healthy_percent = 50
-  }
+  deployment_maximum_percent         = 200
+  deployment_minimum_healthy_percent = 50
 
   deployment_circuit_breaker {
     enable   = true

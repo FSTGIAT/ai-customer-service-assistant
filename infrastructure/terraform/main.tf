@@ -46,7 +46,7 @@ module "opensearch" {
   source = "./modules/opensearch-managed"
 
   name_prefix           = local.name_prefix
-  domain_name           = "${local.name_prefix}-search"
+  domain_name           = "ca-${var.environment}-search"  # Shortened to fit 28-char limit
   engine_version        = var.opensearch_version
   instance_type         = var.opensearch_instance_type
   instance_count        = var.opensearch_instance_count
