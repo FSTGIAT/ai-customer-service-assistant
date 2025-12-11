@@ -1,0 +1,87 @@
+{
+  "index_patterns": ["call-keypoints*"],
+  "template": {
+    "settings": {
+      "index": {
+        "number_of_shards": 2,
+        "number_of_replicas": 1,
+        "knn": true,
+        "knn.algo_param.ef_search": 512
+      },
+      "analysis": {
+        "analyzer": {
+          "hebrew_analyzer": {
+            "type": "custom",
+            "tokenizer": "standard",
+            "filter": ["lowercase", "hebrew_stop", "asciifolding"]
+          }
+        },
+        "filter": {
+          "hebrew_stop": {
+            "type": "stop",
+            "stopwords": ["את", "על", "של", "אל", "מן", "כל", "אם", "או", "כי", "לא", "לו", "אך", "גם", "כך", "זה", "זו", "הוא", "היא", "הם", "הן", "אני", "אתה"]
+          }
+        }
+      }
+    },
+    "mappings": {
+      "properties": {
+        "keypoint_id": {
+          "type": "keyword"
+        },
+        "parent_call_id": {
+          "type": "keyword"
+        },
+        "customer_id": {
+          "type": "keyword"
+        },
+        "keypoint_text": {
+          "type": "text",
+          "analyzer": "hebrew_analyzer",
+          "fields": {
+            "keyword": {
+              "type": "keyword",
+              "ignore_above": 512
+            }
+          }
+        },
+        "keypoint_embedding": {
+          "type": "knn_vector",
+          "dimension": 768,
+          "method": {
+            "name": "hnsw",
+            "space_type": "cosinesimil",
+            "engine": "lucene",
+            "parameters": {
+              "ef_construction": 512,
+              "m": 16
+            }
+          }
+        },
+        "keypoint_type": {
+          "type": "keyword"
+        },
+        "context": {
+          "type": "text",
+          "analyzer": "hebrew_analyzer"
+        },
+        "topics": {
+          "type": "keyword"
+        },
+        "sentiment": {
+          "type": "keyword"
+        },
+        "confidence": {
+          "type": "float"
+        },
+        "call_date": {
+          "type": "date"
+        },
+        "timestamp": {
+          "type": "date"
+        }
+      }
+    }
+  },
+  "priority": 100
+}

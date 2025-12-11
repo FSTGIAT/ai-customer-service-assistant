@@ -1,0 +1,118 @@
+{
+  "index_patterns": ["rag-evaluations*"],
+  "template": {
+    "settings": {
+      "index": {
+        "number_of_shards": 1,
+        "number_of_replicas": 1,
+        "knn": true
+      },
+      "analysis": {
+        "analyzer": {
+          "hebrew_analyzer": {
+            "type": "custom",
+            "tokenizer": "standard",
+            "filter": ["lowercase", "hebrew_stop", "asciifolding"]
+          }
+        },
+        "filter": {
+          "hebrew_stop": {
+            "type": "stop",
+            "stopwords": ["את", "על", "של", "אל", "מן", "כל", "אם", "או", "כי", "לא"]
+          }
+        }
+      }
+    },
+    "mappings": {
+      "properties": {
+        "evaluation_id": {
+          "type": "keyword"
+        },
+        "query_text": {
+          "type": "text",
+          "analyzer": "hebrew_analyzer",
+          "fields": {
+            "keyword": {
+              "type": "keyword",
+              "ignore_above": 512
+            }
+          }
+        },
+        "query_embedding": {
+          "type": "knn_vector",
+          "dimension": 768,
+          "method": {
+            "name": "hnsw",
+            "space_type": "cosinesimil",
+            "engine": "lucene"
+          }
+        },
+        "query_type": {
+          "type": "keyword"
+        },
+        "search_strategy": {
+          "type": "keyword"
+        },
+        "retrieved_doc_ids": {
+          "type": "keyword"
+        },
+        "retrieved_count": {
+          "type": "integer"
+        },
+        "expected_doc_ids": {
+          "type": "keyword"
+        },
+        "expected_count": {
+          "type": "integer"
+        },
+        "precision_at_5": {
+          "type": "float"
+        },
+        "precision_at_10": {
+          "type": "float"
+        },
+        "precision_at_20": {
+          "type": "float"
+        },
+        "recall_at_5": {
+          "type": "float"
+        },
+        "recall_at_10": {
+          "type": "float"
+        },
+        "recall_at_20": {
+          "type": "float"
+        },
+        "recall_at_100": {
+          "type": "float"
+        },
+        "mrr": {
+          "type": "float"
+        },
+        "ndcg": {
+          "type": "float"
+        },
+        "accuracy_score": {
+          "type": "float"
+        },
+        "latency_ms": {
+          "type": "integer"
+        },
+        "user_feedback": {
+          "type": "keyword"
+        },
+        "feedback_comment": {
+          "type": "text",
+          "analyzer": "hebrew_analyzer"
+        },
+        "is_ground_truth": {
+          "type": "boolean"
+        },
+        "timestamp": {
+          "type": "date"
+        }
+      }
+    }
+  },
+  "priority": 100
+}

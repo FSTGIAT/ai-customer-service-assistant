@@ -1,0 +1,114 @@
+{
+  "index_patterns": ["call-summaries*"],
+  "template": {
+    "settings": {
+      "index": {
+        "number_of_shards": 2,
+        "number_of_replicas": 1,
+        "knn": true,
+        "knn.algo_param.ef_search": 512
+      },
+      "analysis": {
+        "analyzer": {
+          "hebrew_analyzer": {
+            "type": "custom",
+            "tokenizer": "standard",
+            "filter": ["lowercase", "hebrew_stop", "hebrew_stemmer", "asciifolding"]
+          },
+          "hebrew_search_analyzer": {
+            "type": "custom",
+            "tokenizer": "standard",
+            "filter": ["lowercase", "hebrew_stop", "asciifolding"]
+          }
+        },
+        "filter": {
+          "hebrew_stop": {
+            "type": "stop",
+            "stopwords": ["את", "על", "של", "אל", "מן", "כל", "אם", "או", "כי", "לא", "לו", "אך", "גם", "כך", "זה", "זו", "הוא", "היא", "הם", "הן", "אני", "אתה", "אתם", "אתן", "אנחנו"]
+          },
+          "hebrew_stemmer": {
+            "type": "stemmer",
+            "language": "hebrew"
+          }
+        }
+      }
+    },
+    "mappings": {
+      "properties": {
+        "call_id": {
+          "type": "keyword"
+        },
+        "customer_id": {
+          "type": "keyword"
+        },
+        "subscriber_id": {
+          "type": "keyword"
+        },
+        "summary": {
+          "type": "text",
+          "analyzer": "hebrew_analyzer",
+          "search_analyzer": "hebrew_search_analyzer",
+          "fields": {
+            "keyword": {
+              "type": "keyword",
+              "ignore_above": 1024
+            }
+          }
+        },
+        "summary_embedding": {
+          "type": "knn_vector",
+          "dimension": 768,
+          "method": {
+            "name": "hnsw",
+            "space_type": "cosinesimil",
+            "engine": "lucene",
+            "parameters": {
+              "ef_construction": 512,
+              "m": 16
+            }
+          }
+        },
+        "classifications": {
+          "type": "keyword"
+        },
+        "primary_classification": {
+          "type": "keyword"
+        },
+        "sentiment": {
+          "properties": {
+            "overall": {
+              "type": "keyword"
+            },
+            "score": {
+              "type": "float"
+            }
+          }
+        },
+        "key_points": {
+          "type": "text",
+          "analyzer": "hebrew_analyzer"
+        },
+        "action_items": {
+          "type": "text",
+          "analyzer": "hebrew_analyzer"
+        },
+        "language": {
+          "type": "keyword"
+        },
+        "confidence": {
+          "type": "float"
+        },
+        "processing_time_ms": {
+          "type": "integer"
+        },
+        "call_date": {
+          "type": "date"
+        },
+        "indexed_at": {
+          "type": "date"
+        }
+      }
+    }
+  },
+  "priority": 100
+}
